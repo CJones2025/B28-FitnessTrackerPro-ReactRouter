@@ -1,4 +1,3 @@
-import { usePage } from "./layout/PageContext";
 
 import Register from "./auth/Register";
 import Login from "./auth/Login";

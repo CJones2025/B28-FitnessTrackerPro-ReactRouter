@@ -1,5 +1,4 @@
 import { useAuth } from "../auth/AuthContext";
-import { usePage } from "./PageContext";
 
 /** Navbar with site navigation links */
 export default function Navbar() {
