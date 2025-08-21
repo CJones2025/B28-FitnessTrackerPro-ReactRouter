@@ -1,3 +1,4 @@
+import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useQuery from "../api/useQuery";
 import { useAuth } from "../auth/AuthContext";
@@ -20,12 +21,24 @@ export default function ActivityDetails() {
   const deleting = deleteMutation.loading;
   const deleteError = deleteMutation.error;
 
+  const [activityDeleteError, setActivityDeleteError] = React.useState("");
   const handleDelete = async () => {
+    setActivityDeleteError("");
     try {
       await deleteActivityApi();
-      navigate("/activities");
-    } catch {
-      // error handled by mutationError
+      // If mutation error exists, show error and do not navigate
+      if (deleteMutation.error) {
+        setActivityDeleteError(
+          deleteMutation.error ||
+            "You do not have permission to delete this activity."
+        );
+      } else {
+        navigate("/activities");
+      }
+    } catch (err) {
+      setActivityDeleteError(
+        err?.message || "You do not have permission to delete this activity."
+      );
     }
   };
 
@@ -39,13 +52,20 @@ export default function ActivityDetails() {
       <p>{activity.description}</p>
       <p>Created by: {activity.creatorName}</p>
       {token && (
-        <button onClick={handleDelete}>
-          {deleting
-            ? "Deleting..."
-            : deleteError
-            ? String(deleteError)
-            : "Delete"}
-        </button>
+        <>
+          <button onClick={handleDelete}>
+            {deleting
+              ? "Deleting..."
+              : deleteError
+              ? String(deleteError)
+              : "Delete"}
+          </button>
+          {activityDeleteError && (
+            <span style={{ color: "red", marginLeft: 8 }}>
+              {activityDeleteError}
+            </span>
+          )}
+        </>
       )}
     </div>
   );

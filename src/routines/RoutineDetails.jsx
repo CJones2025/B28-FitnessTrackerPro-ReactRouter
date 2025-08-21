@@ -1,10 +1,12 @@
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import useQuery from "../api/useQuery";
 import useMutation from "../api/useMutation";
-import SetForm from "./SetForm";
+import SetList from "./setList";
 
 export default function RoutineDetails() {
+  const { data: activities } = useQuery("/activities", "activities");
   const { id } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -18,12 +20,28 @@ export default function RoutineDetails() {
   const deleting = deleteMutation.loading;
   const deleteError = deleteMutation.error;
 
+  // Hooks must be called before any returns
+  const [sets, setSets] = useState([]);
+  useEffect(() => {
+    setSets(Array.isArray(routine?.sets) ? routine.sets : []);
+  }, [routine?.sets]);
+
+  // Handler to remove set by id
+  const handleDeleteSet = (setId) => {
+    setSets((prev) => prev.filter((s) => s.id !== setId));
+  };
+
+  const [routineDeleteError, setRoutineDeleteError] = useState("");
   const handleDelete = async () => {
+    setRoutineDeleteError("");
     try {
       await deleteRoutineApi();
+      // Always navigate if no error thrown
       navigate("/routines");
-    } catch {
-      // error handled by mutationError
+    } catch (err) {
+      setRoutineDeleteError(
+        err?.message || "You do not have permission to delete this routine."
+      );
     }
   };
 
@@ -46,11 +64,9 @@ export default function RoutineDetails() {
     );
   }
 
-  // Defensive checks for properties
   const name = routine.name || "Unnamed Routine";
   const goal = routine.goal || "No goal provided.";
   const creatorName = routine.creatorName || "Unknown";
-  const sets = Array.isArray(routine.sets) ? routine.sets : [];
 
   return (
     <div>
@@ -58,49 +74,29 @@ export default function RoutineDetails() {
       <p>{goal}</p>
       <p>Created by: {creatorName}</p>
       {token && (
-        <button onClick={handleDelete}>
-          {deleting
-            ? "Deleting..."
-            : deleteError
-            ? String(deleteError)
-            : "Delete Routine"}
-        </button>
+        <>
+          <button onClick={handleDelete}>
+            {deleting
+              ? "Deleting..."
+              : deleteError
+              ? String(deleteError)
+              : "Delete Routine"}
+          </button>
+          {routineDeleteError && (
+            <span style={{ color: "red", marginLeft: 8 }}>
+              {routineDeleteError}
+            </span>
+          )}
+        </>
       )}
-    
-      <h3>Sets</h3>
-      {sets.length === 0 ? (
-        <p>No sets yet. Add a set below!</p>
-      ) : (
-        <ul>
-          {sets.map((set) => (
-            <SetItem key={set.id} set={set} routineId={id} token={token} />
-          ))}
-        </ul>
-      )}
-      {token && <SetForm routineId={id} />}
+
+      <SetList
+        sets={sets}
+        routineId={id}
+        activities={activities}
+        onDeleteSet={handleDeleteSet}
+        onAddSet={(newSet) => setSets((prev) => [...prev, newSet])}
+      />
     </div>
-  );
-}
-
-function SetItem({ set, routineId, token }) {
-  const {
-    mutate: deleteSet,
-    loading,
-    error,
-  } = useMutation("DELETE", `/routines/${routineId}/sets/${set.id}`, [
-    `routine-${routineId}`,
-  ]);
-
-  return (
-    <li>
-      <span>
-        {set.activityName} - {set.count} reps
-      </span>
-      {token && (
-        <button onClick={() => deleteSet()}>
-          {loading ? "Deleting..." : error ? error : "Delete Set"}
-        </button>
-      )}
-    </li>
   );
 }

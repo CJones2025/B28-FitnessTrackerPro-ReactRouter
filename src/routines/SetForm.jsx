@@ -63,7 +63,6 @@ export default function SetForm({ routineId }) {
         Reps
         <input type="number" name="count" min="1" required />
       </label>
-  {/* Removed duration field as requested */}
       <button disabled={loading}>Add Set</button>
       {(error || mutationError) && (
         <output>
